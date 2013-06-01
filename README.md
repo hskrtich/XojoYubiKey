@@ -3,6 +3,8 @@ Xojo-YubiKey
 
 A YubiKey Authentication Class for Xojo / RealBasic under the MIT License.
 
+This project is not complete.
+
 Doc's:
 http://www.yubico.com/develop/open-source-software/web-api-clients/
 https://github.com/Yubico/yubikey-val/wiki/ValidationProtocolV20
