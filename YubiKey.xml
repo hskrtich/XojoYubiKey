@@ -1,5 +1,5 @@
 <?xml version="1.0"?>
-<RBProject version="2012r2.1" FormatVersion="2" MinIDEVersion="20070100">
+<RBProject version="2013r1" FormatVersion="2" MinIDEVersion="20070100">
 <block type="Module" ID="1947344823">
  <ObjName>YubiKey</ObjName>
  <ObjContainerID>0</ObjContainerID>
@@ -13,22 +13,30 @@
   <Visible>1</Visible>
   <ItemSource>
    <TextEncoding>134217984</TextEncoding>
-   <SourceLine>Sub Constructor(API_ID As String, API_Key As String)</SourceLine>
+   <SourceLine>Sub Constructor(API_ID As Integer, API_Key As String)</SourceLine>
+   <SourceLine>If API_ID &gt; 0 Then kAPIID = API_ID</SourceLine>
+   <SourceLine>If Len(API_Key) = 28 Then kAPIKey = DecodeBase64(API_Key)</SourceLine>
    <SourceLine></SourceLine>
-   <SourceLine></SourceLine>
-   <SourceLine></SourceLine>
+   <SourceLine>// Set defaults</SourceLine>
    <SourceLine>Servers.Append("api.yubico.com/wsapi/2.0/verify")</SourceLine>
    <SourceLine>Servers.Append("api2.yubico.com/wsapi/2.0/verify")</SourceLine>
    <SourceLine>Servers.Append("api3.yubico.com/wsapi/2.0/verify")</SourceLine>
    <SourceLine>Servers.Append("api4.yubico.com/wsapi/2.0/verify")</SourceLine>
    <SourceLine>Servers.Append("api5.yubico.com/wsapi/2.0/verify")</SourceLine>
+   <SourceLine></SourceLine>
+   <SourceLine>kTimestampTolerance = 600 //Seconds</SourceLine>
+   <SourceLine>kRequestTimeOut = 10 //Seconds</SourceLine>
+   <SourceLine></SourceLine>
+   <SourceLine>kParameters = New Dictionary</SourceLine>
+   <SourceLine>kResultParameters = New Dictionary</SourceLine>
+   <SourceLine></SourceLine>
    <SourceLine>End Sub</SourceLine>
   </ItemSource>
   <TextEncoding>134217984</TextEncoding>
   <AliasName></AliasName>
   <ItemFlags>4096</ItemFlags>
-  <Shared>0</Shared>
-  <ItemParams>API_ID As String, API_Key As String</ItemParams>
+  <IsShared>0</IsShared>
+  <ItemParams>API_ID As Integer, API_Key As String</ItemParams>
   <ItemResult></ItemResult>
  </Method>
  <Method>
@@ -37,16 +45,50 @@
   <Visible>1</Visible>
   <ItemSource>
    <TextEncoding>134217984</TextEncoding>
-   <SourceLine>Sub verify(token AS String, use_timestamp As Boolean = False, wait_for_all As Boolean = False, sl As Integer = -1, timeout As Integer = -1)</SourceLine>
+   <SourceLine>Function verify(otp As String, use_timestamp As Boolean = False, wait_for_all As Boolean = False, sl As Integer = -1, timeout As Integer = -1) As Boolean</SourceLine>
+   <SourceLine>Dim http As New HTTPSocket</SourceLine>
+   <SourceLine>Dim result As String</SourceLine>
    <SourceLine></SourceLine>
-   <SourceLine>End Sub</SourceLine>
+   <SourceLine>kParameters.Value("id") = kAPIID</SourceLine>
+   <SourceLine>kParameters.Value("otp") = otp</SourceLine>
+   <SourceLine>//kParameters.Value("h") = "" // Hash</SourceLine>
+   <SourceLine>kParameters.Value("nonce") = kRandomString(40)</SourceLine>
+   <SourceLine>kParameters.Value("timestamp") = "1"</SourceLine>
+   <SourceLine>If sl &gt; -1 Then kParameters.Value("sl") = Str(sl)</SourceLine>
+   <SourceLine>If timeout &gt; -1 Then kParameters.Value("timeout") = Str(timeout)</SourceLine>
+   <SourceLine></SourceLine>
+   <SourceLine>Dim url As String</SourceLine>
+   <SourceLine>url = "http://"+Servers(0)+"?"+kParameterList</SourceLine>
+   <SourceLine>result = http.Get(url, kRequestTimeOut)</SourceLine>
+   <SourceLine></SourceLine>
+   <SourceLine>processResponce(result)</SourceLine>
+   <SourceLine></SourceLine>
+   <SourceLine>If kResultParameters.Value("status") &lt;&gt; "OK" Then</SourceLine>
+   <SourceLine>kErrorMessage = kResultParameters.Value("status")</SourceLine>
+   <SourceLine>Return False</SourceLine>
+   <SourceLine>End If</SourceLine>
+   <SourceLine></SourceLine>
+   <SourceLine>If kParameters.Value("otp") &lt;&gt; kResultParameters.Value("otp") Then</SourceLine>
+   <SourceLine></SourceLine>
+   <SourceLine>Return False</SourceLine>
+   <SourceLine>End If</SourceLine>
+   <SourceLine></SourceLine>
+   <SourceLine>If kParameters.Value("nonce") &lt;&gt; kResultParameters.Value("nonce") Then</SourceLine>
+   <SourceLine></SourceLine>
+   <SourceLine>Return False</SourceLine>
+   <SourceLine>End If</SourceLine>
+   <SourceLine></SourceLine>
+   <SourceLine>Dim b As Boolean</SourceLine>
+   <SourceLine></SourceLine>
+   <SourceLine>Return True</SourceLine>
+   <SourceLine>End Function</SourceLine>
   </ItemSource>
   <TextEncoding>134217984</TextEncoding>
   <AliasName></AliasName>
   <ItemFlags>0</ItemFlags>
-  <Shared>0</Shared>
-  <ItemParams>token AS String, use_timestamp As Boolean = False, wait_for_all As Boolean = False, sl As Integer = -1, timeout As Integer = -1</ItemParams>
-  <ItemResult></ItemResult>
+  <IsShared>0</IsShared>
+  <ItemParams>otp As String, use_timestamp As Boolean = False, wait_for_all As Boolean = False, sl As Integer = -1, timeout As Integer = -1</ItemParams>
+  <ItemResult>Boolean</ItemResult>
  </Method>
  <Method>
   <ItemName>getLastQuery</ItemName>
@@ -61,24 +103,7 @@
   <TextEncoding>134217984</TextEncoding>
   <AliasName></AliasName>
   <ItemFlags>0</ItemFlags>
-  <Shared>0</Shared>
-  <ItemParams></ItemParams>
-  <ItemResult></ItemResult>
- </Method>
- <Method>
-  <ItemName>getLastResponse</ItemName>
-  <Compatibility></Compatibility>
-  <Visible>1</Visible>
-  <ItemSource>
-   <TextEncoding>134217984</TextEncoding>
-   <SourceLine>Sub getLastResponse()</SourceLine>
-   <SourceLine></SourceLine>
-   <SourceLine>End Sub</SourceLine>
-  </ItemSource>
-  <TextEncoding>134217984</TextEncoding>
-  <AliasName></AliasName>
-  <ItemFlags>0</ItemFlags>
-  <Shared>0</Shared>
+  <IsShared>0</IsShared>
   <ItemParams></ItemParams>
   <ItemResult></ItemResult>
  </Method>
@@ -95,8 +120,150 @@
   <TextEncoding>134217984</TextEncoding>
   <AliasName></AliasName>
   <ItemFlags>33</ItemFlags>
-  <Shared>0</Shared>
+  <IsShared>0</IsShared>
   <ItemParams></ItemParams>
+  <ItemResult></ItemResult>
+ </Method>
+ <Method>
+  <ItemName>decode_modhex</ItemName>
+  <Compatibility></Compatibility>
+  <Visible>1</Visible>
+  <ItemSource>
+   <TextEncoding>134217984</TextEncoding>
+   <SourceLine>Function decode_modhex(s As String) As String</SourceLine>
+   <SourceLine>//    Find: cbde fghi jkln rtuv</SourceLine>
+   <SourceLine>// Replace: 0123 4567 89ab cdef</SourceLine>
+   <SourceLine>Dim find() As String</SourceLine>
+   <SourceLine>Dim replace() As String</SourceLine>
+   <SourceLine>Dim i, iend As Integer</SourceLine>
+   <SourceLine></SourceLine>
+   <SourceLine>find = Array("c", "b", "d", "e", "f", "g", "h", "i", "j", "k", "l", "n", "r", "t", "u", "v")</SourceLine>
+   <SourceLine>replace = Array("0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "a", "b", "c", "d", "e", "f")</SourceLine>
+   <SourceLine></SourceLine>
+   <SourceLine>i = 0</SourceLine>
+   <SourceLine>iend = find.Ubound+1</SourceLine>
+   <SourceLine>While i &lt; iend</SourceLine>
+   <SourceLine>s = ReplaceAll(s, find(i), replace(i))</SourceLine>
+   <SourceLine></SourceLine>
+   <SourceLine>i = i + 1</SourceLine>
+   <SourceLine>wend</SourceLine>
+   <SourceLine></SourceLine>
+   <SourceLine>Return s</SourceLine>
+   <SourceLine>End Function</SourceLine>
+  </ItemSource>
+  <TextEncoding>134217984</TextEncoding>
+  <AliasName></AliasName>
+  <ItemFlags>0</ItemFlags>
+  <IsShared>0</IsShared>
+  <ItemParams>s As String</ItemParams>
+  <ItemResult>String</ItemResult>
+ </Method>
+ <Method>
+  <ItemName>kRandomString</ItemName>
+  <Compatibility></Compatibility>
+  <Visible>1</Visible>
+  <ItemSource>
+   <TextEncoding>134217984</TextEncoding>
+   <SourceLine>Function kRandomString(length As Integer = 8, charset As String = "0123456789ABCDEFGHJKLMNPQRSTUVWXYZ") As String</SourceLine>
+   <SourceLine>// Generate a random string of the specified length, by choosing characters</SourceLine>
+   <SourceLine>// at random from the given character set.  NOTE: we currently assume that</SourceLine>
+   <SourceLine>// all characters in charset are only 1 byte each.</SourceLine>
+   <SourceLine></SourceLine>
+   <SourceLine>#If RBVersion &gt; 5.5</SourceLine>
+   <SourceLine>Static m As MemoryBlock</SourceLine>
+   <SourceLine>#Else</SourceLine>
+   <SourceLine>Dim m As MemoryBlock</SourceLine>
+   <SourceLine>#EndIf</SourceLine>
+   <SourceLine></SourceLine>
+   <SourceLine>If m = Nil Then</SourceLine>
+   <SourceLine>m = New MemoryBlock( length )</SourceLine>
+   <SourceLine>Else</SourceLine>
+   <SourceLine>m.Size = length</SourceLine>
+   <SourceLine>End If</SourceLine>
+   <SourceLine></SourceLine>
+   <SourceLine>Dim charsetSize As Integer = Len( charset )</SourceLine>
+   <SourceLine></SourceLine>
+   <SourceLine>#If RBVersion &gt; 5.5</SourceLine>
+   <SourceLine>Static r As New Random</SourceLine>
+   <SourceLine>For i As Integer = 0 To length - 1</SourceLine>
+   <SourceLine>m.StringValue( i, 1 ) = MidB( charset, r.InRange( 1, charsetSize ), 1 )</SourceLine>
+   <SourceLine>Next</SourceLine>
+   <SourceLine>#Else</SourceLine>
+   <SourceLine>For i As Integer = 0 To length - 1</SourceLine>
+   <SourceLine>m.StringValue( i, 1 ) = MidB( charset, Rnd * charsetSize + 1, 1 )</SourceLine>
+   <SourceLine>Next</SourceLine>
+   <SourceLine>#EndIf</SourceLine>
+   <SourceLine></SourceLine>
+   <SourceLine>Return DefineEncoding( m.StringValue( 0, length ), charset.Encoding )</SourceLine>
+   <SourceLine></SourceLine>
+   <SourceLine>End Function</SourceLine>
+  </ItemSource>
+  <TextEncoding>134217984</TextEncoding>
+  <AliasName></AliasName>
+  <ItemFlags>33</ItemFlags>
+  <IsShared>0</IsShared>
+  <ItemParams>length As Integer = 8, charset As String = "0123456789ABCDEFGHJKLMNPQRSTUVWXYZ"</ItemParams>
+  <ItemResult>String</ItemResult>
+ </Method>
+ <Method>
+  <ItemName>kParameterList</ItemName>
+  <Compatibility></Compatibility>
+  <Visible>1</Visible>
+  <ItemSource>
+   <TextEncoding>134217984</TextEncoding>
+   <SourceLine>Function kParameterList() As String</SourceLine>
+   <SourceLine>Dim s() As String</SourceLine>
+   <SourceLine>Dim i As Integer = 0</SourceLine>
+   <SourceLine></SourceLine>
+   <SourceLine></SourceLine>
+   <SourceLine>While i &lt; kParameters.Count</SourceLine>
+   <SourceLine>s.Append(kParameters.key(i)+"="+kParameters.value(kParameters.key(i)))</SourceLine>
+   <SourceLine></SourceLine>
+   <SourceLine>i = i + 1</SourceLine>
+   <SourceLine>Wend</SourceLine>
+   <SourceLine></SourceLine>
+   <SourceLine>Return Join(s, "&amp;")</SourceLine>
+   <SourceLine>End Function</SourceLine>
+  </ItemSource>
+  <TextEncoding>134217984</TextEncoding>
+  <AliasName></AliasName>
+  <ItemFlags>33</ItemFlags>
+  <IsShared>0</IsShared>
+  <ItemParams></ItemParams>
+  <ItemResult>String</ItemResult>
+ </Method>
+ <Method>
+  <ItemName>processResponce</ItemName>
+  <Compatibility></Compatibility>
+  <Visible>1</Visible>
+  <ItemSource>
+   <TextEncoding>134217984</TextEncoding>
+   <SourceLine>Sub processResponce(response As String)</SourceLine>
+   <SourceLine>Dim s() As String</SourceLine>
+   <SourceLine>Dim i As Integer = 0</SourceLine>
+   <SourceLine>Dim m As Integer</SourceLine>
+   <SourceLine></SourceLine>
+   <SourceLine>Dim tmp0, tmp1, tmp2 As String</SourceLine>
+   <SourceLine></SourceLine>
+   <SourceLine>response = DefineEncoding(response, Encodings.UTF8)</SourceLine>
+   <SourceLine>response = ReplaceLineEndings(response, EndOfLine)</SourceLine>
+   <SourceLine>response = response.Trim</SourceLine>
+   <SourceLine>s = Split(response, EndOfLine)</SourceLine>
+   <SourceLine></SourceLine>
+   <SourceLine>while i &lt;= s.Ubound</SourceLine>
+   <SourceLine>m = InStr(s(i), "=")</SourceLine>
+   <SourceLine></SourceLine>
+   <SourceLine>kResultParameters.Value(s(i).Left(m-1)) = s(i).Right(s(i).Len - m)</SourceLine>
+   <SourceLine></SourceLine>
+   <SourceLine>i = i + 1</SourceLine>
+   <SourceLine>Wend</SourceLine>
+   <SourceLine>End Sub</SourceLine>
+  </ItemSource>
+  <TextEncoding>134217984</TextEncoding>
+  <AliasName></AliasName>
+  <ItemFlags>33</ItemFlags>
+  <IsShared>0</IsShared>
+  <ItemParams>response As String</ItemParams>
   <ItemResult></ItemResult>
  </Method>
  <Note>
@@ -140,7 +307,8 @@
    <NoteLine>ReadMe</NoteLine>
    <NoteLine>A YubiKey Authentication Class for Xojo / RealBasic under the MIT License.</NoteLine>
    <NoteLine></NoteLine>
-   <NoteLine>Doc's: http://www.yubico.com/develop/open-source-software/web-api-clients/</NoteLine>
+   <NoteLine>Doc's:</NoteLine>
+   <NoteLine>http://www.yubico.com/develop/open-source-software/web-api-clients/</NoteLine>
    <NoteLine>https://github.com/Yubico/yubikey-val/wiki/ValidationProtocolV20</NoteLine>
    <NoteLine>http://www.yubico.com/develop/open-source-software/modhex-calculator/</NoteLine>
    <NoteLine></NoteLine>
@@ -172,7 +340,7 @@
   <TextEncoding>134217984</TextEncoding>
   <ItemDeclaration>Servers() As String</ItemDeclaration>
   <ItemFlags>0</ItemFlags>
-  <Shared>0</Shared>
+  <IsShared>0</IsShared>
  </Property>
  <Property>
   <ItemName>kErrorCode</ItemName>
@@ -180,13 +348,13 @@
   <Visible>1</Visible>
   <ItemSource>
    <TextEncoding>134217984</TextEncoding>
-   <SourceLine>kErrorCode As Integer = 0</SourceLine>
+   <SourceLine>kErrorCode As Integer</SourceLine>
    <SourceLine></SourceLine>
   </ItemSource>
   <TextEncoding>134217984</TextEncoding>
   <ItemDeclaration>kErrorCode As Integer = 0</ItemDeclaration>
   <ItemFlags>33</ItemFlags>
-  <Shared>0</Shared>
+  <IsShared>0</IsShared>
  </Property>
  <Property>
   <ItemName>kErrorMessage</ItemName>
@@ -194,13 +362,13 @@
   <Visible>1</Visible>
   <ItemSource>
    <TextEncoding>134217984</TextEncoding>
-   <SourceLine>kErrorMessage As String = "0"</SourceLine>
+   <SourceLine>kErrorMessage As String</SourceLine>
    <SourceLine></SourceLine>
   </ItemSource>
   <TextEncoding>134217984</TextEncoding>
   <ItemDeclaration>kErrorMessage As String = "0"</ItemDeclaration>
   <ItemFlags>33</ItemFlags>
-  <Shared>0</Shared>
+  <IsShared>0</IsShared>
  </Property>
  <Property>
   <ItemName>kAPIKey</ItemName>
@@ -208,13 +376,13 @@
   <Visible>1</Visible>
   <ItemSource>
    <TextEncoding>134217984</TextEncoding>
-   <SourceLine>kAPIKey As String = "0"</SourceLine>
+   <SourceLine>kAPIKey As String</SourceLine>
    <SourceLine></SourceLine>
   </ItemSource>
   <TextEncoding>134217984</TextEncoding>
   <ItemDeclaration>kAPIKey As String = "0"</ItemDeclaration>
   <ItemFlags>33</ItemFlags>
-  <Shared>0</Shared>
+  <IsShared>0</IsShared>
  </Property>
  <Property>
   <ItemName>kAPIID</ItemName>
@@ -222,13 +390,13 @@
   <Visible>1</Visible>
   <ItemSource>
    <TextEncoding>134217984</TextEncoding>
-   <SourceLine>kAPIID As String = "0"</SourceLine>
+   <SourceLine>kAPIID As Integer</SourceLine>
    <SourceLine></SourceLine>
   </ItemSource>
   <TextEncoding>134217984</TextEncoding>
-  <ItemDeclaration>kAPIID As String = "0"</ItemDeclaration>
+  <ItemDeclaration>kAPIID As Integer = 0</ItemDeclaration>
   <ItemFlags>33</ItemFlags>
-  <Shared>0</Shared>
+  <IsShared>0</IsShared>
  </Property>
  <Property>
   <ItemName>kRequestTimeOut</ItemName>
@@ -236,13 +404,13 @@
   <Visible>1</Visible>
   <ItemSource>
    <TextEncoding>134217984</TextEncoding>
-   <SourceLine>kRequestTimeOut As Integer = 10</SourceLine>
+   <SourceLine>kRequestTimeOut As Integer</SourceLine>
    <SourceLine></SourceLine>
   </ItemSource>
   <TextEncoding>134217984</TextEncoding>
   <ItemDeclaration>kRequestTimeOut As Integer = 10</ItemDeclaration>
   <ItemFlags>33</ItemFlags>
-  <Shared>0</Shared>
+  <IsShared>0</IsShared>
  </Property>
  <Property>
   <ItemName>kTimestampTolerance</ItemName>
@@ -250,13 +418,13 @@
   <Visible>1</Visible>
   <ItemSource>
    <TextEncoding>134217984</TextEncoding>
-   <SourceLine>kTimestampTolerance As Integer = 600</SourceLine>
+   <SourceLine>kTimestampTolerance As Integer</SourceLine>
    <SourceLine></SourceLine>
   </ItemSource>
   <TextEncoding>134217984</TextEncoding>
   <ItemDeclaration>kTimestampTolerance As Integer = 600</ItemDeclaration>
   <ItemFlags>33</ItemFlags>
-  <Shared>0</Shared>
+  <IsShared>0</IsShared>
  </Property>
  <Property>
   <ItemName>ErrorCode</ItemName>
@@ -264,13 +432,13 @@
   <Visible>1</Visible>
   <ItemSource>
    <TextEncoding>134217984</TextEncoding>
-   <SourceLine>Property ErrorCode As Integer</SourceLine>
+   <SourceLine>ErrorCode As Integer</SourceLine>
    <SourceLine></SourceLine>
   </ItemSource>
   <TextEncoding>134217984</TextEncoding>
   <ItemDeclaration>ErrorCode As Integer</ItemDeclaration>
   <ItemFlags>0</ItemFlags>
-  <Shared>0</Shared>
+  <IsShared>0</IsShared>
   <SetAccessor>
    <TextEncoding>134217984</TextEncoding>
    <SourceLine>Set</SourceLine>
@@ -290,13 +458,13 @@
   <Visible>1</Visible>
   <ItemSource>
    <TextEncoding>134217984</TextEncoding>
-   <SourceLine>Property ErrorMessage As String</SourceLine>
+   <SourceLine>ErrorMessage As String</SourceLine>
    <SourceLine></SourceLine>
   </ItemSource>
   <TextEncoding>134217984</TextEncoding>
   <ItemDeclaration>ErrorMessage As String</ItemDeclaration>
   <ItemFlags>0</ItemFlags>
-  <Shared>0</Shared>
+  <IsShared>0</IsShared>
   <SetAccessor>
    <TextEncoding>134217984</TextEncoding>
    <SourceLine>Set</SourceLine>
@@ -322,13 +490,120 @@
   <TextEncoding>134217984</TextEncoding>
   <ItemDeclaration>k As Integer</ItemDeclaration>
   <ItemFlags>33</ItemFlags>
-  <Shared>0</Shared>
+  <IsShared>0</IsShared>
+ </Property>
+ <Property>
+  <ItemName>RequestTimeout</ItemName>
+  <Compatibility></Compatibility>
+  <Visible>1</Visible>
+  <ItemSource>
+   <TextEncoding>134217984</TextEncoding>
+   <SourceLine>RequestTimeout As Integer</SourceLine>
+   <SourceLine></SourceLine>
+  </ItemSource>
+  <TextEncoding>134217984</TextEncoding>
+  <ItemDeclaration>RequestTimeout As Integer</ItemDeclaration>
+  <ItemFlags>0</ItemFlags>
+  <IsShared>0</IsShared>
+  <SetAccessor>
+   <TextEncoding>134217984</TextEncoding>
+   <SourceLine>Set</SourceLine>
+   <SourceLine></SourceLine>
+   <SourceLine>End Set</SourceLine>
+  </SetAccessor>
+  <GetAccessor>
+   <TextEncoding>134217984</TextEncoding>
+   <SourceLine>Get</SourceLine>
+   <SourceLine></SourceLine>
+   <SourceLine>End Get</SourceLine>
+  </GetAccessor>
+ </Property>
+ <Property>
+  <ItemName>TimestampTolerance</ItemName>
+  <Compatibility></Compatibility>
+  <Visible>1</Visible>
+  <ItemSource>
+   <TextEncoding>134217984</TextEncoding>
+   <SourceLine>TimestampTolerance As Integer</SourceLine>
+   <SourceLine></SourceLine>
+  </ItemSource>
+  <TextEncoding>134217984</TextEncoding>
+  <ItemDeclaration>TimestampTolerance As Integer</ItemDeclaration>
+  <ItemFlags>0</ItemFlags>
+  <IsShared>0</IsShared>
+  <SetAccessor>
+   <TextEncoding>134217984</TextEncoding>
+   <SourceLine>Set</SourceLine>
+   <SourceLine></SourceLine>
+   <SourceLine>End Set</SourceLine>
+  </SetAccessor>
+  <GetAccessor>
+   <TextEncoding>134217984</TextEncoding>
+   <SourceLine>Get</SourceLine>
+   <SourceLine></SourceLine>
+   <SourceLine>End Get</SourceLine>
+  </GetAccessor>
+ </Property>
+ <Property>
+  <ItemName>LastResponse</ItemName>
+  <Compatibility></Compatibility>
+  <Visible>1</Visible>
+  <ItemSource>
+   <TextEncoding>134217984</TextEncoding>
+   <SourceLine>LastResponse As String</SourceLine>
+   <SourceLine></SourceLine>
+  </ItemSource>
+  <TextEncoding>134217984</TextEncoding>
+  <ItemDeclaration>LastResponse As String</ItemDeclaration>
+  <ItemFlags>0</ItemFlags>
+  <IsShared>0</IsShared>
+  <SetAccessor>
+   <TextEncoding>134217984</TextEncoding>
+   <SourceLine>Set</SourceLine>
+   <SourceLine></SourceLine>
+   <SourceLine>End Set</SourceLine>
+  </SetAccessor>
+  <GetAccessor>
+   <TextEncoding>134217984</TextEncoding>
+   <SourceLine>Get</SourceLine>
+   <SourceLine></SourceLine>
+   <SourceLine>End Get</SourceLine>
+  </GetAccessor>
+ </Property>
+ <Property>
+  <ItemName>kParameters</ItemName>
+  <Compatibility></Compatibility>
+  <Visible>1</Visible>
+  <ItemSource>
+   <TextEncoding>134217984</TextEncoding>
+   <SourceLine>kParameters As Dictionary</SourceLine>
+   <SourceLine></SourceLine>
+  </ItemSource>
+  <TextEncoding>134217984</TextEncoding>
+  <ItemDeclaration>kParameters As Dictionary</ItemDeclaration>
+  <ItemFlags>33</ItemFlags>
+  <IsShared>0</IsShared>
+ </Property>
+ <Property>
+  <ItemName>kResultParameters</ItemName>
+  <Compatibility></Compatibility>
+  <Visible>1</Visible>
+  <ItemSource>
+   <TextEncoding>134217984</TextEncoding>
+   <SourceLine>kResultParameters As Dictionary</SourceLine>
+   <SourceLine></SourceLine>
+  </ItemSource>
+  <TextEncoding>134217984</TextEncoding>
+  <ItemDeclaration>kResultParameters As Dictionary</ItemDeclaration>
+  <ItemFlags>33</ItemFlags>
+  <IsShared>0</IsShared>
  </Property>
  <ViewBehavior>
   <ViewProperty>
    <ObjName>Name</ObjName>
    <Visible>1</Visible>
    <PropertyGroup>ID</PropertyGroup>
+   <ItemType>String</ItemType>
    <InheritsFrom>Object</InheritsFrom>
   </ViewProperty>
   <ViewProperty>
@@ -336,12 +611,14 @@
    <Visible>1</Visible>
    <PropertyGroup>ID</PropertyGroup>
    <PropertyValue>-2147483648</PropertyValue>
+   <ItemType>Integer</ItemType>
    <InheritsFrom>Object</InheritsFrom>
   </ViewProperty>
   <ViewProperty>
    <ObjName>Super</ObjName>
    <Visible>1</Visible>
    <PropertyGroup>ID</PropertyGroup>
+   <ItemType>String</ItemType>
    <InheritsFrom>Object</InheritsFrom>
   </ViewProperty>
   <ViewProperty>
@@ -349,6 +626,7 @@
    <Visible>1</Visible>
    <PropertyGroup>Position</PropertyGroup>
    <PropertyValue>0</PropertyValue>
+   <ItemType>Integer</ItemType>
    <InheritsFrom>Object</InheritsFrom>
   </ViewProperty>
   <ViewProperty>
@@ -356,7 +634,35 @@
    <Visible>1</Visible>
    <PropertyGroup>Position</PropertyGroup>
    <PropertyValue>0</PropertyValue>
+   <ItemType>Integer</ItemType>
    <InheritsFrom>Object</InheritsFrom>
+  </ViewProperty>
+  <ViewProperty>
+   <ObjName>ErrorCode</ObjName>
+   <PropertyGroup>Behavior</PropertyGroup>
+   <ItemType>Integer</ItemType>
+  </ViewProperty>
+  <ViewProperty>
+   <ObjName>ErrorMessage</ObjName>
+   <PropertyGroup>Behavior</PropertyGroup>
+   <ItemType>String</ItemType>
+   <EditorType>MultiLineEditor</EditorType>
+  </ViewProperty>
+  <ViewProperty>
+   <ObjName>RequestTimeout</ObjName>
+   <PropertyGroup>Behavior</PropertyGroup>
+   <ItemType>Integer</ItemType>
+  </ViewProperty>
+  <ViewProperty>
+   <ObjName>TimestampTolerance</ObjName>
+   <PropertyGroup>Behavior</PropertyGroup>
+   <ItemType>Integer</ItemType>
+  </ViewProperty>
+  <ViewProperty>
+   <ObjName>LastResponse</ObjName>
+   <PropertyGroup>Behavior</PropertyGroup>
+   <ItemType>String</ItemType>
+   <EditorType>MultiLineEditor</EditorType>
   </ViewProperty>
  </ViewBehavior>
 </block>
